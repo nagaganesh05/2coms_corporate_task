@@ -1,43 +1,52 @@
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
+import useStore from "../../store/useStore";
 
-const data = [
-  {
-    name: "Engineering",
-    value: 45,
-  },
-  {
-    name: "HR",
-    value: 15,
-  },
-  {
-    name: "Marketing",
-    value: 20,
-  },
-  {
-    name: "Sales",
-    value: 20,
-  },
+const COLORS = [
+  "#4f46e5", // brand
+  "#8b5cf6",
+  "#ec4899",
+  "#f97316",
+  "#f59e0b",
+  "#10b981",
+  "#06b6d4",
+  "#3b82f6",
 ];
 
-const COLORS = ["#2563eb", "#7c3aed", "#14b8a6", "#f97316"];
+function DepartmentChart({ height = 280 }) {
+  const data = useStore((s) => s.departmentDistribution);
 
-function DepartmentChart() {
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-5">Department Distribution</h2>
-
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie data={data} dataKey="value" outerRadius={100} label>
-            {data.map((entry, index) => (
-              <Cell key={index} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Pie>
-
-          <Tooltip />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
+    <ResponsiveContainer width="100%" height={height}>
+      <PieChart>
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          innerRadius={60}
+          outerRadius={100}
+          paddingAngle={2}
+          stroke="none"
+        >
+          {data.map((_, i) => (
+            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip
+          contentStyle={{
+            background: "white",
+            borderRadius: 12,
+            border: "1px solid #e5e7eb",
+            fontSize: 12,
+          }}
+        />
+        <Legend
+          layout="vertical"
+          align="right"
+          verticalAlign="middle"
+          wrapperStyle={{ fontSize: 12 }}
+        />
+      </PieChart>
+    </ResponsiveContainer>
   );
 }
 

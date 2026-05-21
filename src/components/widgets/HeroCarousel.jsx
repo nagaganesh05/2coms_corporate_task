@@ -1,54 +1,92 @@
 import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
-import "swiper/css/autoplay";
-import { Autoplay } from "swiper/modules";
+import "swiper/css/pagination";
+import { Sparkles, Megaphone, Target } from "lucide-react";
 
+// Editorial leadership-vision carousel for the dashboard.
 const slides = [
   {
-    title: "Leadership Vision 2026",
-    subtitle: "Driving innovation and collaboration across all departments.",
-    image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f",
+    eyebrow: "Vision 2026",
+    title: "Building a culture that compounds",
+    subtitle:
+      "Three bets — AI-native products, customer obsession, and one-team culture across verticals.",
+    icon: Sparkles,
+    bg: "from-brand-700 via-brand-600 to-violet-600",
+    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1600",
   },
   {
-    title: "Quarterly Business Growth",
-    subtitle: "Company growth increased by 24% this quarter.",
-    image: "https://images.unsplash.com/photo-1552664730-d307ca884978",
+    eyebrow: "Leadership Town Hall",
+    title: "May Q&A — what we are doubling down on",
+    subtitle:
+      "Customer days, listening sessions and shadow programs across every vertical.",
+    icon: Megaphone,
+    bg: "from-indigo-700 via-indigo-600 to-blue-600",
+    image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1600",
   },
   {
-    title: "Employee Engagement Week",
-    subtitle: "Celebrating collaboration and culture.",
-    image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c",
+    eyebrow: "Quarterly OKRs",
+    title: "Operational excellence, end to end",
+    subtitle: "Reduced incident MTTR by 38% and shipped a public reliability dashboard.",
+    icon: Target,
+    bg: "from-fuchsia-700 via-violet-600 to-indigo-700",
+    image: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1600",
   },
 ];
 
 function HeroCarousel() {
   return (
     <Swiper
-      modules={[Autoplay]}
-      autoplay={{ delay: 3000 }}
+      modules={[Autoplay, Pagination]}
+      autoplay={{ delay: 5000, disableOnInteraction: false }}
+      pagination={{ clickable: true }}
       loop
-      className="rounded-[32px] overflow-hidden"
+      className="rounded-3xl overflow-hidden hero-carousel"
     >
-      {slides.map((slide, index) => (
-        <SwiperSlide key={index}>
-          <div
-            className="h-[380px] bg-cover bg-center relative flex items-center"
-            style={{ backgroundImage: `url(${slide.image})` }}
-          >
-            <div className="absolute inset-0 bg-black/50"></div>
-
-            <div className="relative z-10 px-12 text-white max-w-2xl">
-              <h1 className="text-5xl font-bold">{slide.title}</h1>
-
-              <p className="mt-5 text-xl">{slide.subtitle}</p>
-
-              <button className="mt-8 bg-white text-black px-6 py-3 rounded-2xl font-semibold">
-                Explore More
-              </button>
+      {slides.map((s, i) => {
+        const Icon = s.icon;
+        return (
+          <SwiperSlide key={i}>
+            <div
+              className="relative h-[280px] sm:h-[340px] flex items-center"
+              style={{
+                backgroundImage: `linear-gradient(120deg, rgba(15,23,42,0.85), rgba(15,23,42,0.65)), url(${s.image})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            >
+              <div
+                className={`absolute inset-0 mix-blend-multiply opacity-80 bg-gradient-to-br ${s.bg}`}
+              />
+              <div className="relative z-10 px-6 sm:px-10 max-w-3xl text-white">
+                <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur px-3 py-1 rounded-full text-xs font-semibold tracking-wide">
+                  <Icon size={14} /> {s.eyebrow}
+                </div>
+                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold mt-4 leading-tight">
+                  {s.title}
+                </h2>
+                <p className="mt-3 text-white/85 text-sm sm:text-base max-w-xl">
+                  {s.subtitle}
+                </p>
+                <button className="mt-6 inline-flex items-center gap-2 bg-white text-ink-900 font-semibold px-5 py-2.5 rounded-xl text-sm hover:bg-white/90">
+                  Read the message
+                </button>
+              </div>
             </div>
-          </div>
-        </SwiperSlide>
-      ))}
+          </SwiperSlide>
+        );
+      })}
+      <style>{`
+        .hero-carousel .swiper-pagination-bullet {
+          background: white;
+          opacity: 0.5;
+        }
+        .hero-carousel .swiper-pagination-bullet-active {
+          opacity: 1;
+          width: 22px;
+          border-radius: 999px;
+        }
+      `}</style>
     </Swiper>
   );
 }
