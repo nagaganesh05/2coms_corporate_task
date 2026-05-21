@@ -1,11 +1,13 @@
+import { useMemo } from "react";
 import { Cake, Gift } from "lucide-react";
-import useStore from "../../store/useStore";
+import { useUpcomingBirthdays } from "../../store/selectors";
 import Avatar from "../common/Avatar";
 import SectionHeader from "../common/SectionHeader";
 import { formatDate } from "../../lib/utils";
 
 function BirthdayWidget() {
-  const upcoming = useStore((s) => s.getUpcomingBirthdays(30)).slice(0, 5);
+  const all = useUpcomingBirthdays(30);
+  const upcoming = useMemo(() => all.slice(0, 5), [all]);
 
   return (
     <div className="card p-5">

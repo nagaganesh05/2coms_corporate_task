@@ -22,12 +22,13 @@ import QuickActions from "../components/widgets/QuickActions";
 import EngagementChart from "../components/charts/EngagementChart";
 import SectionHeader from "../components/common/SectionHeader";
 import useStore from "../store/useStore";
+import { useVisiblePosts } from "../store/selectors";
 
 function Dashboard() {
   const employees = useStore((s) => s.employees);
   const recognitions = useStore((s) => s.recognitions);
   const events = useStore((s) => s.events);
-  const visiblePosts = useStore((s) => s.getVisiblePosts());
+  const visiblePosts = useVisiblePosts();
 
   return (
     <div className="space-y-6 animate-fade-in">

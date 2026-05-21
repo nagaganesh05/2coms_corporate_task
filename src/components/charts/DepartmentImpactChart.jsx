@@ -8,7 +8,8 @@ import {
   CartesianGrid,
   Cell,
 } from "recharts";
-import useStore from "../../store/useStore";
+import { useMemo } from "react";
+import { useDepartmentImpact } from "../../store/selectors";
 
 const COLORS = [
   "#4f46e5",
@@ -23,9 +24,11 @@ const COLORS = [
 ];
 
 function DepartmentImpactChart({ height = 280 }) {
-  const data = useStore((s) => s.getDepartmentImpact())
-    .filter((d) => d.count > 0)
-    .sort((a, b) => b.count - a.count);
+  const impact = useDepartmentImpact();
+  const data = useMemo(
+    () => impact.filter((d) => d.count > 0).sort((a, b) => b.count - a.count),
+    [impact],
+  );
 
   return (
     <ResponsiveContainer width="100%" height={height}>

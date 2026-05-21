@@ -1,5 +1,5 @@
 import { Trophy, Medal } from "lucide-react";
-import useStore from "../../store/useStore";
+import { useLeaderboard } from "../../store/selectors";
 import Avatar from "../common/Avatar";
 import SectionHeader from "../common/SectionHeader";
 
@@ -10,7 +10,7 @@ const RANK_BG = [
 ];
 
 function LeaderboardWidget({ limit = 5 }) {
-  const leaders = useStore((s) => s.getLeaderboard(limit));
+  const leaders = useLeaderboard(limit);
 
   return (
     <div className="card p-5">

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Filter, Pin } from "lucide-react";
-import useStore from "../store/useStore";
+import { useVisiblePosts } from "../store/selectors";
 import FeedCard from "../components/cards/FeedCard";
 import PostComposer from "../components/widgets/PostComposer";
 import EmptyState from "../components/common/EmptyState";
@@ -20,7 +20,7 @@ const FILTERS = [
 ];
 
 function Feed() {
-  const visiblePosts = useStore((s) => s.getVisiblePosts());
+  const visiblePosts = useVisiblePosts();
   const [filter, setFilter] = useState("all");
 
   const posts = useMemo(() => {

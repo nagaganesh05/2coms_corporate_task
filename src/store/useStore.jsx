@@ -100,7 +100,9 @@ const useStore = create((set, get) => ({
   theme: persistedTheme || "light",
 
   // ----------------------------------------------------------------------
-  // Selectors
+  // Selectors — only object/value lookups (stable references) live here.
+  // Array-returning derivations belong in store/selectors.js so they can
+  // be memoized via useMemo and don't trigger infinite re-renders.
   // ----------------------------------------------------------------------
   getCurrentUser: () => {
     const { currentUserId, employees: emp } = get();
@@ -110,79 +112,6 @@ const useStore = create((set, get) => ({
   getDepartment: (id) => get().departments.find((d) => d.id === id),
   getVertical: (id) => get().verticals.find((v) => v.id === id),
   getBadge: (id) => get().badges.find((b) => b.id === id),
-
-  // Visibility-aware feed for the current user
-  getVisiblePosts: () => {
-    const { posts: list, currentUserId, employees: emp, role } = get();
-    const me = emp.find((e) => e.id === currentUserId);
-    const myDept = me?.departmentId;
-    return list.filter((p) => {
-      if (!p.visibility || p.visibility.includes("all")) return true;
-      if (role === "admin") return true; // admins see everything
-      return p.visibility.includes(myDept);
-    });
-  },
-
-  // Leaderboard derived from recognitions
-  getLeaderboard: (limit = 10) => {
-    const { recognitions: recs, badges: bg, employees: emp } = get();
-    const map = new Map();
-    for (const r of recs) {
-      const points = bg.find((b) => b.id === r.badgeId)?.points || 0;
-      const cur = map.get(r.toId) || { id: r.toId, points: 0, count: 0 };
-      cur.points += points;
-      cur.count += 1;
-      map.set(r.toId, cur);
-    }
-    return Array.from(map.values())
-      .map((row) => ({
-        ...row,
-        employee: emp.find((e) => e.id === row.id),
-      }))
-      .filter((row) => row.employee)
-      .sort((a, b) => b.points - a.points)
-      .slice(0, limit);
-  },
-
-  // Birthdays in the next N days
-  getUpcomingBirthdays: (days = 30) => {
-    const today = new Date();
-    return get()
-      .employees.map((e) => {
-        if (!e.dob) return null;
-        const dob = new Date(e.dob);
-        const next = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
-        if (next < today) next.setFullYear(today.getFullYear() + 1);
-        const diff = Math.round((next - today) / 86_400_000);
-        return diff <= days ? { employee: e, in: diff, on: next } : null;
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.in - b.in);
-  },
-
-  // Joinees in last N days
-  getNewJoinees: (days = 60) => {
-    const cutoff = Date.now() - days * 86_400_000;
-    return get()
-      .employees.filter((e) => new Date(e.joinDate).getTime() >= cutoff)
-      .sort((a, b) => new Date(b.joinDate) - new Date(a.joinDate));
-  },
-
-  // Department impact in the last N days based on posts of type project_win/footprint/milestone
-  getDepartmentImpact: () => {
-    const { posts: list, departments: deps } = get();
-    return deps.map((d) => {
-      const count = list.filter(
-        (p) =>
-          ["project_win", "footprint", "milestone"].includes(p.type) &&
-          (p.visibility?.includes("all") ||
-            p.visibility?.includes(d.id) ||
-            p.authorId &&
-              get().getEmployee(p.authorId)?.departmentId === d.id),
-      ).length;
-      return { departmentId: d.id, name: d.name, count };
-    });
-  },
 
   // ----------------------------------------------------------------------
   // Auth actions

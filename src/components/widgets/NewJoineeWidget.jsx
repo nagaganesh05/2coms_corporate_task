@@ -3,12 +3,13 @@ import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import { Sparkles, MapPin } from "lucide-react";
 import useStore from "../../store/useStore";
+import { useNewJoinees } from "../../store/selectors";
 import Avatar from "../common/Avatar";
 import Tag from "../common/Tag";
 import SectionHeader from "../common/SectionHeader";
 
 function NewJoineeWidget() {
-  const newJoinees = useStore((s) => s.getNewJoinees(60));
+  const newJoinees = useNewJoinees(60);
   const getDepartment = useStore((s) => s.getDepartment);
 
   return (
