@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Mail, MapPin, Calendar, Trophy, Sparkles } from "lucide-react";
 import useStore from "../store/useStore";
 import Avatar from "../components/common/Avatar";
@@ -8,17 +9,30 @@ import SectionHeader from "../components/common/SectionHeader";
 import { formatDate } from "../lib/utils";
 
 function Profile() {
+  // Subscribe to raw arrays only — never derive (.filter / .map) inside the
+  // useStore selector, that returns a new reference every render and
+  // triggers an infinite useSyncExternalStore loop.
   const me = useStore((s) => s.getCurrentUser());
   const dept = useStore((s) => s.getDepartment(me?.departmentId));
-  const recognitions = useStore((s) =>
-    s.recognitions.filter((r) => r.toId === me?.id),
-  );
-  const myPosts = useStore((s) => s.posts.filter((p) => p.authorId === me?.id));
+  const allRecognitions = useStore((s) => s.recognitions);
+  const allPosts = useStore((s) => s.posts);
   const badges = useStore((s) => s.badges);
 
-  const totalPoints = recognitions.reduce(
-    (a, r) => a + (badges.find((b) => b.id === r.badgeId)?.points || 0),
-    0,
+  const recognitions = useMemo(
+    () => allRecognitions.filter((r) => r.toId === me?.id),
+    [allRecognitions, me?.id],
+  );
+  const myPosts = useMemo(
+    () => allPosts.filter((p) => p.authorId === me?.id),
+    [allPosts, me?.id],
+  );
+  const totalPoints = useMemo(
+    () =>
+      recognitions.reduce(
+        (a, r) => a + (badges.find((b) => b.id === r.badgeId)?.points || 0),
+        0,
+      ),
+    [recognitions, badges],
   );
 
   if (!me) return null;
