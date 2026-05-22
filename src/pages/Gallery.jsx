@@ -6,25 +6,6 @@ import GalleryLightbox from "../components/widgets/GalleryLightbox";
 import Tag from "../components/common/Tag";
 import { cn } from "../lib/utils";
 
-// Stagger children so the grid feels alive on first render and tab switch.
-const gridVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.04, delayChildren: 0.02 },
-  },
-};
-
-const tileVariants = {
-  hidden: { opacity: 0, y: 14, scale: 0.96 },
-  show: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] },
-  },
-};
-
 function Gallery() {
   const photos = useStore((s) => s.galleryPhotos);
   const videos = useStore((s) => s.galleryVideos);
@@ -82,20 +63,18 @@ function Gallery() {
       </div>
 
       {tab === "photos" ? (
-        <motion.div
+        <div
           key="photos-grid"
-          variants={gridVariants}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 animate-fade-in"
         >
           {photos.map((p, i) => (
             <motion.button
               key={p.id}
-              variants={tileVariants}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: i * 0.03 }}
               whileHover={{ y: -3 }}
               whileTap={{ scale: 0.97 }}
-              transition={{ type: "spring", stiffness: 380, damping: 24 }}
               onClick={() => open(i)}
               className="group relative rounded-2xl overflow-hidden aspect-square shadow-card hover:shadow-card-hover"
             >
@@ -115,22 +94,20 @@ function Gallery() {
               </div>
             </motion.button>
           ))}
-        </motion.div>
+        </div>
       ) : (
-        <motion.div
+        <div
           key="videos-grid"
-          variants={gridVariants}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in"
         >
           {videos.map((v, i) => (
             <motion.button
               key={v.id}
-              variants={tileVariants}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: i * 0.04 }}
               whileHover={{ y: -3 }}
               whileTap={{ scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 380, damping: 24 }}
               onClick={() => open(i)}
               className="card overflow-hidden text-left shadow-card hover:shadow-card-hover"
             >
@@ -158,7 +135,7 @@ function Gallery() {
               </div>
             </motion.button>
           ))}
-        </motion.div>
+        </div>
       )}
 
       <GalleryLightbox
