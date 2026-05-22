@@ -92,17 +92,17 @@ function Dashboard() {
         ))}
       </motion.div>
 
-      {/* Two-column: engagement chart + leadership messages */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card p-5 flex flex-col">
+      {/* Two-column: engagement chart + leadership messages.
+          items-start prevents the chart card from being stretched to the
+          height of the leadership column — the chart stays compact. */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="lg:col-span-2 card p-5">
           <SectionHeader
             icon={Sparkles}
             title="Engagement at a glance"
             subtitle="Monthly engagement score across the org"
           />
-          <div className="flex-1 min-h-[260px]">
-            <EngagementChart height="100%" />
-          </div>
+          <EngagementChart height={220} />
         </div>
         <div id="leadership-messages" className="scroll-mt-24">
           <LeadershipMessageWidget />

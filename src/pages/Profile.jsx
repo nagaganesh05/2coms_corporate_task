@@ -115,7 +115,8 @@ function Profile() {
     [recognitions, badges],
   );
 
-  // Engagement totals across the user's posts (a nicer "alive" stat than 0/0)
+  // Engagement = total reactions across the user's posts. A more lively
+  // stat than 0/0 for new accounts.
   const engagement = useMemo(
     () =>
       myPosts.reduce(
@@ -134,9 +135,7 @@ function Profile() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="card overflow-hidden">
-        {/* ---------- Cover banner ----------
-            Compact (h-28) with a tasteful radial-glow + dot grid so it
-            doesn't feel like dead space. The Edit button floats top-right. */}
+        {/* ---------- Cover banner ---------- */}
         <div className="relative h-28 bg-hero-gradient overflow-hidden">
           <div
             aria-hidden
@@ -163,29 +162,33 @@ function Profile() {
           </button>
         </div>
 
-        {/* ---------- Identity row ----------
-            Grid layout instead of flex-wrap — keeps the avatar + name on the
-            left, stats on the right, and gracefully stacks on mobile. */}
-        <div className="px-6 pb-6 -mt-12 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-end">
-          <div className="flex items-end gap-4 min-w-0">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 220, damping: 18 }}
-            >
-              <Avatar
-                name={me.name}
-                size="2xl"
-                ring
-                className="border-4 border-white dark:border-ink-900 shadow-lg"
-              />
-            </motion.div>
-            <div className="min-w-0 pb-1">
-              <h1 className="font-display text-2xl font-extrabold text-ink-900 dark:text-ink-100 truncate">
+        {/* ---------- Profile content ----------
+            Avatar floats above on its own, name + stats sit cleanly in the
+            white card area below — so the name never lands on the dark
+            banner where it would be invisible. */}
+        <div className="px-6 pb-6">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 220, damping: 18 }}
+            className="-mt-14 mb-4 inline-block"
+          >
+            <Avatar
+              name={me.name}
+              size="2xl"
+              ring
+              className="border-4 border-white dark:border-ink-900 shadow-lg"
+            />
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 md:gap-6 items-start">
+            {/* Identity */}
+            <div className="min-w-0">
+              <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-ink-900 dark:text-ink-100 leading-tight">
                 {me.name}
               </h1>
-              <p className="muted truncate">{me.role}</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
+              <p className="muted mt-1">{me.role}</p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
                 <Tag tone="brand">{dept?.name}</Tag>
                 <Tag tone="ghost" icon={<MapPin size={10} />}>
                   {me.location}
@@ -200,101 +203,93 @@ function Profile() {
                 </Tag>
               </div>
             </div>
+
+            {/* Stats — three tight tiles */}
+            <motion.div
+              initial="hidden"
+              animate="show"
+              variants={{
+                hidden: {},
+                show: { transition: { staggerChildren: 0.06 } },
+              }}
+              className="grid grid-cols-3 gap-2 md:flex md:gap-3"
+            >
+              {[
+                {
+                  label: "Recognitions",
+                  value: recognitions.length,
+                  tone: "brand",
+                },
+                { label: "Points", value: totalPoints, tone: "accent" },
+                { label: "Engagement", value: engagement, tone: "success" },
+              ].map(({ label, value, tone }) => (
+                <motion.div
+                  key={label}
+                  variants={{
+                    hidden: { opacity: 0, y: 8 },
+                    show: {
+                      opacity: 1,
+                      y: 0,
+                      transition: { duration: 0.25 },
+                    },
+                  }}
+                  className="card p-3 text-center min-w-[88px]"
+                >
+                  <p className="text-[11px] muted">{label}</p>
+                  <p
+                    className={
+                      "font-display text-xl sm:text-2xl font-bold tabular-nums " +
+                      (tone === "accent"
+                        ? "text-accent-600 dark:text-accent-400"
+                        : tone === "success"
+                          ? "text-success-600 dark:text-success-500"
+                          : "text-ink-900 dark:text-ink-100")
+                    }
+                  >
+                    {value}
+                  </p>
+                </motion.div>
+              ))}
+            </motion.div>
           </div>
 
-          {/* Stats — three tight tiles, always aligned to the right on md+ */}
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={{
-              hidden: {},
-              show: { transition: { staggerChildren: 0.06 } },
-            }}
-            className="grid grid-cols-3 gap-2 md:flex md:gap-3"
-          >
-            {[
-              {
-                label: "Recognitions",
-                value: recognitions.length,
-                tone: "brand",
-              },
-              {
-                label: "Points",
-                value: totalPoints,
-                tone: "accent",
-              },
-              {
-                label: "Engagement",
-                value: engagement,
-                tone: "success",
-              },
-            ].map(({ label, value, tone }) => (
-              <motion.div
-                key={label}
-                variants={{
-                  hidden: { opacity: 0, y: 8 },
-                  show: {
-                    opacity: 1,
-                    y: 0,
-                    transition: { duration: 0.25 },
-                  },
-                }}
-                className="card p-3 text-center min-w-[90px]"
+          {/* Bio + skills + email */}
+          <div className="mt-5 space-y-4">
+            {me.bio ? (
+              <p className="text-sm text-ink-700 dark:text-ink-300 max-w-2xl">
+                {me.bio}
+              </p>
+            ) : (
+              <button
+                onClick={() => setEditOpen(true)}
+                className="text-sm text-brand-600 hover:underline inline-flex items-center gap-1.5"
               >
-                <p className="text-[11px] muted">{label}</p>
-                <p
-                  className={
-                    "font-display text-xl sm:text-2xl font-bold tabular-nums " +
-                    (tone === "accent"
-                      ? "text-accent-600 dark:text-accent-400"
-                      : tone === "success"
-                        ? "text-success-600 dark:text-success-500"
-                        : "text-ink-900 dark:text-ink-100")
-                  }
-                >
-                  {value}
-                </p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
+                <Pencil size={12} /> Add a short bio so colleagues can find you
+              </button>
+            )}
 
-        {/* ---------- Bio + skills + email ---------- */}
-        <div className="px-6 pb-6 space-y-4">
-          {me.bio ? (
-            <p className="text-sm text-ink-700 dark:text-ink-300 max-w-2xl">
-              {me.bio}
-            </p>
-          ) : (
-            <button
-              onClick={() => setEditOpen(true)}
+            {me.skills?.length > 0 && (
+              <div>
+                <p className="text-xs muted uppercase tracking-wider font-semibold">
+                  Skills
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {me.skills.map((s) => (
+                    <Tag key={s} tone="ink">
+                      {s}
+                    </Tag>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <a
+              href={`mailto:${me.email}`}
               className="text-sm text-brand-600 hover:underline inline-flex items-center gap-1.5"
             >
-              <Pencil size={12} /> Add a short bio so colleagues can find you
-            </button>
-          )}
-
-          {me.skills?.length > 0 && (
-            <div>
-              <p className="text-xs muted uppercase tracking-wider font-semibold">
-                Skills
-              </p>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {me.skills.map((s) => (
-                  <Tag key={s} tone="ink">
-                    {s}
-                  </Tag>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <a
-            href={`mailto:${me.email}`}
-            className="text-sm text-brand-600 hover:underline inline-flex items-center gap-1.5"
-          >
-            <Mail size={14} /> {me.email}
-          </a>
+              <Mail size={14} /> {me.email}
+            </a>
+          </div>
         </div>
       </div>
 
