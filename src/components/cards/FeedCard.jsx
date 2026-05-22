@@ -11,7 +11,9 @@ import {
   MoreHorizontal,
   Send,
   Flag,
+  AlertTriangle,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import useStore from "../../store/useStore";
 import Avatar from "../common/Avatar";
 import Tag from "../common/Tag";
@@ -31,6 +33,7 @@ function FeedCard({ post }) {
   const author = useStore((s) => s.getEmployee(post.authorId));
   const reactPost = useStore((s) => s.reactPost);
   const addComment = useStore((s) => s.addComment);
+  const flagPost = useStore((s) => s.flagPost);
   const employees = useStore((s) => s.employees);
   const [showComments, setShowComments] = useState(false);
   const [draft, setDraft] = useState("");
@@ -47,6 +50,41 @@ function FeedCard({ post }) {
     if (!draft.trim()) return;
     addComment(post.id, draft.trim());
     setDraft("");
+  }
+
+  async function handleShare() {
+    // Build a stable shareable URL — anchored to /feed#postId so a future
+    // backend can resolve the post even before the page is on the route.
+    const url = `${window.location.origin}/feed#${post.id}`;
+    const payload = {
+      title: post.title,
+      text: `${post.title} — on CorpConnect`,
+      url,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(payload);
+        return;
+      }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied to clipboard");
+        return;
+      }
+      throw new Error("no-share-api");
+    } catch (err) {
+      if (err?.name === "AbortError") return; // user dismissed share sheet
+      toast("Sharing not supported on this device", { icon: "ℹ️" });
+    }
+  }
+
+  function handleFlag() {
+    if (post.flagged) {
+      toast("Already reported — moderators will review", { icon: "✓" });
+      return;
+    }
+    flagPost(post.id);
+    toast.success("Reported. Moderators will review this post.");
   }
 
   return (
@@ -146,15 +184,25 @@ function FeedCard({ post }) {
           <MessageCircle size={14} />
           {post.comments?.length || 0} replies
         </button>
-        <button className="btn-ghost !px-3 !py-2 gap-1.5 text-xs">
+        <button
+          onClick={handleShare}
+          className="btn-ghost !px-3 !py-2 gap-1.5 text-xs"
+        >
           <Share2 size={14} /> Share
         </button>
         <button
-          className="btn-ghost !px-3 !py-2 gap-1.5 text-xs ml-auto text-ink-400"
-          aria-label="Flag"
-          title="Report"
+          onClick={handleFlag}
+          className={cn(
+            "btn-ghost !px-3 !py-2 gap-1.5 text-xs ml-auto",
+            post.flagged
+              ? "text-warning-600"
+              : "text-ink-400 hover:text-warning-600",
+          )}
+          aria-label="Report this post"
+          title={post.flagged ? "Already reported" : "Report"}
         >
-          <Flag size={14} />
+          {post.flagged ? <AlertTriangle size={14} /> : <Flag size={14} />}
+          {post.flagged && <span className="hidden sm:inline">Reported</span>}
         </button>
       </div>
 

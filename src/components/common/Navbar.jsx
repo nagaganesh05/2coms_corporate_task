@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useStore from "../../store/useStore";
 import Avatar from "./Avatar";
-import SearchBar from "./SearchBar";
+import GlobalSearch from "./GlobalSearch";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
 import Tag from "./Tag";
@@ -80,7 +80,6 @@ function UserMenu() {
 
 function Navbar({ onOpenMobileNav }) {
   const me = useStore((s) => s.getCurrentUser());
-  const [search, setSearch] = useState("");
 
   return (
     <header className="sticky top-0 z-20 bg-white/80 dark:bg-ink-900/80 backdrop-blur border-b border-ink-100 dark:border-ink-800">
@@ -103,7 +102,7 @@ function Navbar({ onOpenMobileNav }) {
         </div>
 
         <div className="flex-1 max-w-xl mx-auto">
-          <SearchBar value={search} onChange={setSearch} />
+          <GlobalSearch />
         </div>
 
         <div className="flex items-center gap-2">

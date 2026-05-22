@@ -198,6 +198,30 @@ const useStore = create((set, get) => ({
     return comment;
   },
 
+  // Report a post for moderation. Mirrors flagThread on forum.
+  flagPost: (postId, reason = "Reported by a colleague") => {
+    const post = get().posts.find((p) => p.id === postId);
+    if (!post) return;
+    set((s) => ({
+      posts: s.posts.map((p) =>
+        p.id === postId ? { ...p, flagged: true } : p,
+      ),
+      moderationQueue: [
+        {
+          id: `mq_${uid()}`,
+          type: "post",
+          authorId: post.authorId,
+          title: post.title,
+          body: post.body,
+          createdAt: new Date().toISOString(),
+          status: "flagged",
+          reason,
+        },
+        ...s.moderationQueue,
+      ],
+    }));
+  },
+
   // ----------------------------------------------------------------------
   // Recognition
   // ----------------------------------------------------------------------
