@@ -420,6 +420,26 @@ const useStore = create((set, get) => ({
     set((s) => ({ milestones: [ms, ...s.milestones] }));
     return ms;
   },
+
+  // ----------------------------------------------------------------------
+  // Profile self-edit (bio + skills are user-editable; the rest is HR-managed)
+  // ----------------------------------------------------------------------
+  updateMyProfile: ({ bio, skills }) => {
+    const id = get().currentUserId;
+    set((s) => ({
+      employees: s.employees.map((e) =>
+        e.id === id
+          ? {
+              ...e,
+              ...(bio !== undefined ? { bio } : {}),
+              ...(skills !== undefined ? { skills } : {}),
+            }
+          : e,
+      ),
+    }));
+  },
 }));
 
 export default useStore;
+
+

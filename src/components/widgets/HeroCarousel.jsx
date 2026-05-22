@@ -2,7 +2,8 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
-import { Sparkles, Megaphone, Target } from "lucide-react";
+import { Sparkles, Megaphone, Target, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 
 // Editorial leadership-vision carousel for the dashboard.
 const slides = [
@@ -34,6 +35,12 @@ const slides = [
   },
 ];
 
+function scrollToLeadership() {
+  // The id is set on the LeadershipMessageWidget wrapper in Dashboard.
+  const el = document.getElementById("leadership-messages");
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function HeroCarousel() {
   return (
     <Swiper
@@ -58,7 +65,12 @@ function HeroCarousel() {
               <div
                 className={`absolute inset-0 mix-blend-multiply opacity-80 bg-gradient-to-br ${s.bg}`}
               />
-              <div className="relative z-10 px-6 sm:px-10 max-w-3xl text-white">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="relative z-10 px-6 sm:px-10 max-w-3xl text-white"
+              >
                 <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur px-3 py-1 rounded-full text-xs font-semibold tracking-wide">
                   <Icon size={14} /> {s.eyebrow}
                 </div>
@@ -68,10 +80,17 @@ function HeroCarousel() {
                 <p className="mt-3 text-white/85 text-sm sm:text-base max-w-xl">
                   {s.subtitle}
                 </p>
-                <button className="mt-6 inline-flex items-center gap-2 bg-white text-ink-900 font-semibold px-5 py-2.5 rounded-xl text-sm hover:bg-white/90">
+                <button
+                  onClick={scrollToLeadership}
+                  className="group mt-6 inline-flex items-center gap-2 bg-white text-ink-900 font-semibold px-5 py-2.5 rounded-xl text-sm hover:bg-white/90 transition"
+                >
                   Read the message
+                  <ArrowRight
+                    size={14}
+                    className="transition-transform group-hover:translate-x-0.5"
+                  />
                 </button>
-              </div>
+              </motion.div>
             </div>
           </SwiperSlide>
         );

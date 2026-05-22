@@ -6,6 +6,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import HeroCarousel from "../components/widgets/HeroCarousel";
 import StatsCard from "../components/cards/StatsCard";
 import LeadershipMessageWidget from "../components/widgets/LeadershipMessageWidget";
@@ -36,36 +37,60 @@ function Dashboard() {
       <HeroCarousel />
 
       {/* Quick KPIs prioritized for engagement */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard
-          title="Colleagues"
-          value={employees.length.toLocaleString()}
-          delta="+3 new this month"
-          icon={Users}
-          tone="brand"
-        />
-        <StatsCard
-          title="Engagement score"
-          value="91%"
-          delta="+7 vs last month"
-          icon={HeartHandshake}
-          tone="success"
-        />
-        <StatsCard
-          title="Recognitions"
-          value={recognitions.length.toString()}
-          delta="+12 this week"
-          icon={Trophy}
-          tone="accent"
-        />
-        <StatsCard
-          title="Upcoming events"
-          value={events.length.toString()}
-          delta={`${events[0] ? events[0].title : "none"}`}
-          icon={Calendar}
-          tone="warning"
-        />
-      </div>
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: {},
+          show: { transition: { staggerChildren: 0.06 } },
+        }}
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+      >
+        {[
+          {
+            title: "Colleagues",
+            value: employees.length.toLocaleString(),
+            delta: "+3 new this month",
+            icon: Users,
+            tone: "brand",
+          },
+          {
+            title: "Engagement score",
+            value: "91%",
+            delta: "+7 vs last month",
+            icon: HeartHandshake,
+            tone: "success",
+          },
+          {
+            title: "Recognitions",
+            value: recognitions.length.toString(),
+            delta: "+12 this week",
+            icon: Trophy,
+            tone: "accent",
+          },
+          {
+            title: "Upcoming events",
+            value: events.length.toString(),
+            delta: events[0] ? events[0].title : "none",
+            icon: Calendar,
+            tone: "warning",
+          },
+        ].map((s, i) => (
+          <motion.div
+            key={i}
+            variants={{
+              hidden: { opacity: 0, y: 14 },
+              show: {
+                opacity: 1,
+                y: 0,
+                transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+              },
+            }}
+          >
+            <StatsCard {...s} />
+          </motion.div>
+        ))}
+      </motion.div>
 
       {/* Two-column: engagement chart + leadership messages */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -77,7 +102,9 @@ function Dashboard() {
           />
           <EngagementChart />
         </div>
-        <LeadershipMessageWidget />
+        <div id="leadership-messages" className="scroll-mt-24">
+          <LeadershipMessageWidget />
+        </div>
       </div>
 
       {/* Leadership meet outcomes + recognition spotlight + poll */}

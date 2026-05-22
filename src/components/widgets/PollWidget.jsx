@@ -1,4 +1,5 @@
 import { BarChart2, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
 import useStore from "../../store/useStore";
 import SectionHeader from "../common/SectionHeader";
 import { cn, formatDate } from "../../lib/utils";
@@ -43,14 +44,16 @@ function PollWidget() {
               )}
             >
               {poll.voted && (
-                <span
+                <motion.span
+                  initial={{ width: 0 }}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                   className={cn(
-                    "absolute inset-y-0 left-0 transition-all",
+                    "absolute inset-y-0 left-0",
                     isMyVote
                       ? "bg-brand-500/15"
                       : "bg-ink-100 dark:bg-ink-800",
                   )}
-                  style={{ width: `${pct}%` }}
                 />
               )}
               <div className="relative flex items-center justify-between gap-3 text-sm">
