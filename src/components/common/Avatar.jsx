@@ -9,7 +9,16 @@ const sizes = {
   "2xl": "w-28 h-28 text-3xl",
 };
 
-function Avatar({ name = "?", size = "md", className = "", ring = false }) {
+// `framed` adds a thick always-white ring that stays visible against any
+// background (used on the profile banner where a dark border would blend
+// into the dark gradient).
+function Avatar({
+  name = "?",
+  size = "md",
+  className = "",
+  ring = false,
+  framed = false,
+}) {
   const grad = avatarGradient(name);
   return (
     <div
@@ -18,6 +27,7 @@ function Avatar({ name = "?", size = "md", className = "", ring = false }) {
         grad,
         sizes[size],
         ring && "ring-2 ring-white dark:ring-ink-900 shadow-sm",
+        framed && "ring-4 ring-white shadow-xl",
         className,
       )}
       aria-label={name}
