@@ -94,13 +94,15 @@ function Dashboard() {
 
       {/* Two-column: engagement chart + leadership messages */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card p-5">
+        <div className="lg:col-span-2 card p-5 flex flex-col">
           <SectionHeader
             icon={Sparkles}
             title="Engagement at a glance"
             subtitle="Monthly engagement score across the org"
           />
-          <EngagementChart />
+          <div className="flex-1 min-h-[260px]">
+            <EngagementChart height="100%" />
+          </div>
         </div>
         <div id="leadership-messages" className="scroll-mt-24">
           <LeadershipMessageWidget />
