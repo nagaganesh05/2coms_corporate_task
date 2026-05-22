@@ -171,14 +171,9 @@ function Profile() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 220, damping: 18 }}
-            className="-mt-14 mb-4 inline-block"
+            className="-mt-14 mb-4 inline-block rounded-full bg-white dark:bg-ink-900 p-1 shadow-xl"
           >
-            <Avatar
-              name={me.name}
-              size="2xl"
-              ring
-              className="border-4 border-white dark:border-ink-900 shadow-lg"
-            />
+            <Avatar name={me.name} size="2xl" />
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 md:gap-6 items-start">

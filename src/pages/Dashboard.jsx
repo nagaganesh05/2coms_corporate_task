@@ -94,7 +94,8 @@ function Dashboard() {
 
       {/* Two-column: engagement chart + leadership messages.
           items-start prevents the chart card from being stretched to the
-          height of the leadership column — the chart stays compact. */}
+          height of the leadership column — the chart stays compact, and
+          a "This week" pulse strip below it fills the natural space. */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 card p-5">
           <SectionHeader
@@ -103,6 +104,81 @@ function Dashboard() {
             subtitle="Monthly engagement score across the org"
           />
           <EngagementChart height={220} />
+
+          {/* This week mini-pulse — turns dead vertical space into useful
+              context. Numbers come from the same engagementMonthly seed so
+              they stay in sync with the chart above. */}
+          <div className="mt-5 pt-5 border-t border-ink-100 dark:border-ink-800">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-ink-500">
+                This week's pulse
+              </p>
+              <Link
+                to="/admin/analytics"
+                className="text-[11px] font-semibold text-brand-600 dark:text-brand-300 hover:underline"
+              >
+                See analytics →
+              </Link>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                {
+                  label: "New posts",
+                  value: "47",
+                  delta: "+12% vs last week",
+                  icon: Sparkles,
+                  tone: "brand",
+                },
+                {
+                  label: "Recognitions",
+                  value: "89",
+                  delta: "+18% vs last week",
+                  icon: Trophy,
+                  tone: "accent",
+                },
+                {
+                  label: "Active people",
+                  value: "1.4k",
+                  delta: "+4% vs last week",
+                  icon: HeartHandshake,
+                  tone: "success",
+                },
+              ].map((p) => {
+                const Icon = p.icon;
+                const tone = {
+                  brand:
+                    "bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300",
+                  accent:
+                    "bg-accent-50 text-accent-600 dark:bg-accent-500/15 dark:text-accent-300",
+                  success:
+                    "bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500",
+                }[p.tone];
+                return (
+                  <div
+                    key={p.label}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-ink-100 dark:border-ink-800"
+                  >
+                    <div
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${tone}`}
+                    >
+                      <Icon size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] muted leading-tight">
+                        {p.label}
+                      </p>
+                      <p className="font-display text-lg font-bold tabular-nums leading-tight">
+                        {p.value}
+                      </p>
+                      <p className="text-[10px] text-success-600 dark:text-success-500 leading-tight mt-0.5">
+                        {p.delta}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
         <div id="leadership-messages" className="scroll-mt-24">
           <LeadershipMessageWidget />
