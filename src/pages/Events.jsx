@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Calendar, Filter } from "lucide-react";
 import useStore from "../store/useStore";
 import EventCard from "../components/cards/EventCard";
-import EngagementCalendar from "../components/widgets/EngagementCalendar";
+import EventsCalendar from "../components/widgets/EventsCalendar";
 import EmptyState from "../components/common/EmptyState";
 import { cn } from "../lib/utils";
 
@@ -40,9 +40,9 @@ function Events() {
       </div>
 
       {/* Calendar + filter */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2">
-          <EngagementCalendar />
+          <EventsCalendar />
         </div>
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-3 text-sm">

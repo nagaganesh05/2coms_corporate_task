@@ -144,10 +144,12 @@ function Directory() {
       <Modal open={!!active} onClose={() => setActive(null)} size="md" title="Employee profile">
         {active && (
           <div>
-            <div className="flex items-center gap-4">
-              <Avatar name={active.name} size="2xl" ring />
-              <div>
-                <h2 className="font-display text-xl font-bold">{active.name}</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <Avatar name={active.name} size="xl" framed />
+              <div className="min-w-0 flex-1">
+                <h2 className="font-display text-xl font-bold text-ink-900 dark:text-ink-100 break-words">
+                  {active.name}
+                </h2>
                 <p className="muted text-sm">{active.role}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <Tag tone="brand">
@@ -159,7 +161,7 @@ function Directory() {
             </div>
 
             {active.bio && (
-              <p className="mt-4 text-sm text-ink-700 dark:text-ink-300">
+              <p className="mt-4 text-sm text-ink-700 dark:text-ink-300 break-words">
                 {active.bio}
               </p>
             )}
@@ -175,10 +177,13 @@ function Directory() {
               </div>
             )}
 
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="min-w-0">
                 <p className="text-xs muted">Email</p>
-                <a className="text-brand-600 hover:underline" href={`mailto:${active.email}`}>
+                <a
+                  className="text-brand-600 hover:underline break-all"
+                  href={`mailto:${active.email}`}
+                >
                   {active.email}
                 </a>
               </div>
@@ -199,9 +204,9 @@ function Directory() {
                       key={r.id}
                       className="flex items-center gap-2 p-2 rounded-lg bg-ink-50 dark:bg-ink-800/50"
                     >
-                      <span className="text-xl">{r.badge?.emoji}</span>
+                      <span className="text-xl shrink-0">{r.badge?.emoji}</span>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold">{r.badge?.name}</p>
+                        <p className="text-sm font-semibold truncate">{r.badge?.name}</p>
                         <p className="text-xs muted line-clamp-1">{r.message}</p>
                       </div>
                     </li>
