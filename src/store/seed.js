@@ -548,6 +548,71 @@ export const recognitions = [
     message: "Shipped the streaming pipeline that unblocked the AI platform.",
     createdAt: daysAgo(9),
   },
+  // Demo-account recognitions so the Profile page feels alive when you log
+  // in as the seeded employee/HR/admin users.
+  {
+    id: "r7",
+    fromId: "e1",
+    toId: "e4",
+    badgeId: "b1",
+    message:
+      "The performance work on the dashboard shaved 1.2s off TTI. Customers feel it.",
+    createdAt: daysAgo(2),
+  },
+  {
+    id: "r8",
+    fromId: "e3",
+    toId: "e4",
+    badgeId: "b3",
+    message:
+      "You hosted a calm, generous design crit. Teams felt heard and unblocked.",
+    createdAt: daysAgo(6),
+  },
+  {
+    id: "r9",
+    fromId: "e12",
+    toId: "e4",
+    badgeId: "b5",
+    message:
+      "Patient mentor on the new onboarding cohort — they were shipping in week two.",
+    createdAt: daysAgo(11),
+  },
+  {
+    id: "r10",
+    fromId: "e0",
+    toId: "e2",
+    badgeId: "b3",
+    message:
+      "You shaped the parental leave policy with care and clarity — culture work at its best.",
+    createdAt: daysAgo(3),
+  },
+  {
+    id: "r11",
+    fromId: "e1",
+    toId: "e2",
+    badgeId: "b2",
+    message:
+      "Hiring quality compounded this quarter because of how you partnered with engineering.",
+    createdAt: daysAgo(8),
+  },
+  {
+    id: "r12",
+    fromId: "e2",
+    toId: "e0",
+    badgeId: "b4",
+    message:
+      "You showed up for every regional all-hands. People felt seen, all year.",
+    createdAt: daysAgo(4),
+  },
+  {
+    id: "r13",
+    fromId: "e5",
+    toId: "e0",
+    badgeId: "b2",
+    message:
+      "The customer-day pilot you championed turned into our best-renewal cohort yet.",
+    createdAt: daysAgo(12),
+  },
 ];
 
 // ---------- Events ----------

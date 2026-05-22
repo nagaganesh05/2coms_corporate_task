@@ -8,6 +8,7 @@ import {
   Sparkles,
   Pencil,
   Save,
+  Award,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import useStore from "../store/useStore";
@@ -49,9 +50,7 @@ function EditProfileModal({ open, onClose, me }) {
         </div>
 
         <div>
-          <label className="text-sm font-semibold mb-1.5 block">
-            Short bio
-          </label>
+          <label className="text-sm font-semibold mb-1.5 block">Short bio</label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
@@ -116,12 +115,46 @@ function Profile() {
     [recognitions, badges],
   );
 
+  // Engagement totals across the user's posts (a nicer "alive" stat than 0/0)
+  const engagement = useMemo(
+    () =>
+      myPosts.reduce(
+        (sum, p) =>
+          sum +
+          (p.reactions?.like || 0) +
+          (p.reactions?.celebrate || 0) +
+          (p.reactions?.support || 0),
+        0,
+      ),
+    [myPosts],
+  );
+
   if (!me) return null;
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="card overflow-hidden">
-        <div className="h-32 bg-hero-gradient relative">
+        {/* ---------- Cover banner ----------
+            Compact (h-28) with a tasteful radial-glow + dot grid so it
+            doesn't feel like dead space. The Edit button floats top-right. */}
+        <div className="relative h-28 bg-hero-gradient overflow-hidden">
+          <div
+            aria-hidden
+            className="absolute inset-0 opacity-40 mix-blend-overlay"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 20% 30%, rgba(255,255,255,0.45), transparent 35%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.25), transparent 40%)",
+            }}
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 opacity-30"
+            style={{
+              backgroundImage:
+                "radial-gradient(rgba(255,255,255,0.35) 1px, transparent 1px)",
+              backgroundSize: "16px 16px",
+            }}
+          />
           <button
             onClick={() => setEditOpen(true)}
             className="absolute top-4 right-4 inline-flex items-center gap-1.5 bg-white/15 hover:bg-white/25 backdrop-blur text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition"
@@ -129,83 +162,120 @@ function Profile() {
             <Pencil size={12} /> Edit profile
           </button>
         </div>
-        <div className="px-6 pb-6 -mt-12">
-          <div className="flex items-end justify-between flex-wrap gap-4">
-            <div className="flex items-end gap-4">
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 220, damping: 18 }}
-              >
-                <Avatar
-                  name={me.name}
-                  size="2xl"
-                  ring
-                  className="border-4 border-white dark:border-ink-900"
-                />
-              </motion.div>
-              <div>
-                <h1 className="font-display text-2xl font-extrabold text-ink-900 dark:text-ink-100">
-                  {me.name}
-                </h1>
-                <p className="muted">{me.role}</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <Tag tone="brand">{dept?.name}</Tag>
-                  <Tag tone="ghost" icon={<MapPin size={10} />}>
-                    {me.location}
-                  </Tag>
-                  <Tag tone="ghost" icon={<Calendar size={10} />}>
-                    Joined{" "}
-                    {formatDate(me.joinDate, {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </Tag>
-                </div>
+
+        {/* ---------- Identity row ----------
+            Grid layout instead of flex-wrap — keeps the avatar + name on the
+            left, stats on the right, and gracefully stacks on mobile. */}
+        <div className="px-6 pb-6 -mt-12 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-end">
+          <div className="flex items-end gap-4 min-w-0">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 220, damping: 18 }}
+            >
+              <Avatar
+                name={me.name}
+                size="2xl"
+                ring
+                className="border-4 border-white dark:border-ink-900 shadow-lg"
+              />
+            </motion.div>
+            <div className="min-w-0 pb-1">
+              <h1 className="font-display text-2xl font-extrabold text-ink-900 dark:text-ink-100 truncate">
+                {me.name}
+              </h1>
+              <p className="muted truncate">{me.role}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <Tag tone="brand">{dept?.name}</Tag>
+                <Tag tone="ghost" icon={<MapPin size={10} />}>
+                  {me.location}
+                </Tag>
+                <Tag tone="ghost" icon={<Calendar size={10} />}>
+                  Joined{" "}
+                  {formatDate(me.joinDate, {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </Tag>
               </div>
-            </div>
-            <div className="flex gap-3">
-              <motion.div
-                initial={{ y: 8, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.05 }}
-                className="card p-3 text-center min-w-[110px]"
-              >
-                <p className="text-xs muted">Recognitions</p>
-                <p className="font-display text-2xl font-bold">
-                  {recognitions.length}
-                </p>
-              </motion.div>
-              <motion.div
-                initial={{ y: 8, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-                className="card p-3 text-center min-w-[110px]"
-              >
-                <p className="text-xs muted">Points</p>
-                <p className="font-display text-2xl font-bold text-accent-600">
-                  {totalPoints}
-                </p>
-              </motion.div>
             </div>
           </div>
 
+          {/* Stats — three tight tiles, always aligned to the right on md+ */}
+          <motion.div
+            initial="hidden"
+            animate="show"
+            variants={{
+              hidden: {},
+              show: { transition: { staggerChildren: 0.06 } },
+            }}
+            className="grid grid-cols-3 gap-2 md:flex md:gap-3"
+          >
+            {[
+              {
+                label: "Recognitions",
+                value: recognitions.length,
+                tone: "brand",
+              },
+              {
+                label: "Points",
+                value: totalPoints,
+                tone: "accent",
+              },
+              {
+                label: "Engagement",
+                value: engagement,
+                tone: "success",
+              },
+            ].map(({ label, value, tone }) => (
+              <motion.div
+                key={label}
+                variants={{
+                  hidden: { opacity: 0, y: 8 },
+                  show: {
+                    opacity: 1,
+                    y: 0,
+                    transition: { duration: 0.25 },
+                  },
+                }}
+                className="card p-3 text-center min-w-[90px]"
+              >
+                <p className="text-[11px] muted">{label}</p>
+                <p
+                  className={
+                    "font-display text-xl sm:text-2xl font-bold tabular-nums " +
+                    (tone === "accent"
+                      ? "text-accent-600 dark:text-accent-400"
+                      : tone === "success"
+                        ? "text-success-600 dark:text-success-500"
+                        : "text-ink-900 dark:text-ink-100")
+                  }
+                >
+                  {value}
+                </p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+
+        {/* ---------- Bio + skills + email ---------- */}
+        <div className="px-6 pb-6 space-y-4">
           {me.bio ? (
-            <p className="mt-5 text-sm text-ink-700 dark:text-ink-300 max-w-2xl">
+            <p className="text-sm text-ink-700 dark:text-ink-300 max-w-2xl">
               {me.bio}
             </p>
           ) : (
             <button
               onClick={() => setEditOpen(true)}
-              className="mt-5 text-sm text-brand-600 hover:underline inline-flex items-center gap-1.5"
+              className="text-sm text-brand-600 hover:underline inline-flex items-center gap-1.5"
             >
               <Pencil size={12} /> Add a short bio so colleagues can find you
             </button>
           )}
 
           {me.skills?.length > 0 && (
-            <div className="mt-4">
+            <div>
               <p className="text-xs muted uppercase tracking-wider font-semibold">
                 Skills
               </p>
@@ -219,35 +289,41 @@ function Profile() {
             </div>
           )}
 
-          <div className="mt-4">
-            <a
-              href={`mailto:${me.email}`}
-              className="text-sm text-brand-600 hover:underline inline-flex items-center gap-1.5"
-            >
-              <Mail size={14} /> {me.email}
-            </a>
-          </div>
+          <a
+            href={`mailto:${me.email}`}
+            className="text-sm text-brand-600 hover:underline inline-flex items-center gap-1.5"
+          >
+            <Mail size={14} /> {me.email}
+          </a>
         </div>
       </div>
 
+      {/* ---------- Posts + recognitions ---------- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <div>
             <SectionHeader
               icon={Sparkles}
               title="Posts I have shared"
-              subtitle={`${myPosts.length} updates from you`}
+              subtitle={`${myPosts.length} update${myPosts.length === 1 ? "" : "s"} from you`}
             />
-            <div className="space-y-4">
-              {myPosts.length === 0 && (
-                <p className="text-sm muted">
-                  You haven’t posted yet — share an update on the feed.
+            {myPosts.length === 0 ? (
+              <div className="card p-8 text-center">
+                <Sparkles size={20} className="mx-auto text-ink-400" />
+                <p className="text-sm font-semibold mt-3 text-ink-800 dark:text-ink-100">
+                  Nothing shared yet
                 </p>
-              )}
-              {myPosts.map((p) => (
-                <FeedCard key={p.id} post={p} />
-              ))}
-            </div>
+                <p className="text-xs muted mt-1">
+                  Share a project win, a learning, or a celebration on the feed.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {myPosts.map((p) => (
+                  <FeedCard key={p.id} post={p} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -258,14 +334,23 @@ function Profile() {
               title="Recognitions received"
               subtitle="Public kudos from colleagues"
             />
-            <div className="space-y-4">
-              {recognitions.length === 0 && (
-                <p className="text-sm muted">No recognitions yet.</p>
-              )}
-              {recognitions.slice(0, 4).map((r) => (
-                <RecognitionCard key={r.id} recognition={r} compact />
-              ))}
-            </div>
+            {recognitions.length === 0 ? (
+              <div className="card p-6 text-center">
+                <Award size={20} className="mx-auto text-ink-400" />
+                <p className="text-sm font-semibold mt-3 text-ink-800 dark:text-ink-100">
+                  No recognitions yet
+                </p>
+                <p className="text-xs muted mt-1">
+                  When colleagues recognize your work, it shows up here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recognitions.slice(0, 5).map((r) => (
+                  <RecognitionCard key={r.id} recognition={r} compact />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
