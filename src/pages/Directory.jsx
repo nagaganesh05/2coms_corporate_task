@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Users, X } from "lucide-react";
+import { Users, X, Mail, MapPin, Calendar, Cake, Building2, UserRound } from "lucide-react";
 import useStore from "../store/useStore";
 import EmployeeCard from "../components/cards/EmployeeCard";
 import SearchBar from "../components/common/SearchBar";
@@ -7,6 +7,33 @@ import EmptyState from "../components/common/EmptyState";
 import Avatar from "../components/common/Avatar";
 import Tag from "../components/common/Tag";
 import Modal from "../components/common/Modal";
+
+// Format an ISO date as "12 Mar 2014"
+function formatDate(iso) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+// Format a DOB as "4 Aug" (year omitted for privacy)
+function formatBirthday(iso) {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+    });
+  } catch {
+    return null;
+  }
+}
 
 function Directory() {
   const employees = useStore((s) => s.employees);
@@ -58,6 +85,22 @@ function Directory() {
           badge: badges.find((b) => b.id === r.badgeId),
         }))
     : [];
+
+  const activeDept = active
+    ? departments.find((d) => d.id === active.departmentId)
+    : null;
+  const activeVertical = activeDept
+    ? verticals.find((v) => v.id === activeDept.verticalId)
+    : null;
+  const manager = active?.manager
+    ? employees.find((e) => e.id === active.manager)
+    : null;
+  const teammates = active
+    ? employees
+        .filter((e) => e.departmentId === active.departmentId && e.id !== active.id)
+        .slice(0, 8)
+    : [];
+  const birthday = active ? formatBirthday(active.dob) : null;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -141,53 +184,148 @@ function Directory() {
       )}
 
       {/* Profile preview modal */}
-      <Modal open={!!active} onClose={() => setActive(null)} size="md" title="Employee profile">
+      <Modal
+        open={!!active}
+        onClose={() => setActive(null)}
+        size="lg"
+        title="Employee profile"
+      >
         {active && (
           <div>
-            <div className="flex items-center gap-4">
+            {/* Header */}
+            <div className="flex items-start gap-4 flex-wrap">
               <Avatar name={active.name} size="2xl" ring />
-              <div>
-                <h2 className="font-display text-xl font-bold">{active.name}</h2>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-display text-xl font-bold text-ink-900 dark:text-ink-100">
+                  {active.name}
+                </h2>
                 <p className="muted text-sm">{active.role}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  <Tag tone="brand">
-                    {departments.find((d) => d.id === active.departmentId)?.name}
-                  </Tag>
-                  <Tag tone="ghost">{active.location}</Tag>
+                  {activeVertical && (
+                    <Tag tone="ghost" icon={<Building2 size={10} />}>
+                      {activeVertical.name}
+                    </Tag>
+                  )}
+                  {activeDept && <Tag tone="brand">{activeDept.name}</Tag>}
+                  {active.location && (
+                    <Tag tone="ghost" icon={<MapPin size={10} />}>
+                      {active.location}
+                    </Tag>
+                  )}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a
+                    href={`mailto:${active.email}`}
+                    className="btn-primary text-xs inline-flex items-center gap-1.5"
+                  >
+                    <Mail size={14} /> Send email
+                  </a>
                 </div>
               </div>
             </div>
 
+            {/* Bio */}
             {active.bio && (
-              <p className="mt-4 text-sm text-ink-700 dark:text-ink-300">
+              <p className="mt-5 text-sm text-ink-700 dark:text-ink-300 leading-relaxed">
                 {active.bio}
               </p>
             )}
 
+            {/* Quick info grid */}
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-3 rounded-xl bg-ink-50 dark:bg-ink-800/50">
+                <p className="text-xs muted uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                  <Mail size={11} /> Email
+                </p>
+                <a
+                  className="text-sm text-brand-600 hover:underline break-all"
+                  href={`mailto:${active.email}`}
+                >
+                  {active.email}
+                </a>
+              </div>
+              <div className="p-3 rounded-xl bg-ink-50 dark:bg-ink-800/50">
+                <p className="text-xs muted uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                  <Calendar size={11} /> Joined
+                </p>
+                <p className="text-sm text-ink-900 dark:text-ink-100">
+                  {formatDate(active.joinDate)}
+                </p>
+              </div>
+              {birthday && (
+                <div className="p-3 rounded-xl bg-ink-50 dark:bg-ink-800/50">
+                  <p className="text-xs muted uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                    <Cake size={11} /> Birthday
+                  </p>
+                  <p className="text-sm text-ink-900 dark:text-ink-100">{birthday}</p>
+                </div>
+              )}
+              <div className="p-3 rounded-xl bg-ink-50 dark:bg-ink-800/50">
+                <p className="text-xs muted uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                  <UserRound size={11} /> Reports to
+                </p>
+                {manager ? (
+                  <button
+                    onClick={() => setActive(manager)}
+                    className="mt-1 flex items-center gap-2 group"
+                  >
+                    <Avatar name={manager.name} size="sm" />
+                    <span className="min-w-0 text-left">
+                      <span className="block text-sm font-semibold text-ink-900 dark:text-ink-100 group-hover:text-brand-600 truncate">
+                        {manager.name}
+                      </span>
+                      <span className="block text-[11px] muted truncate">
+                        {manager.role}
+                      </span>
+                    </span>
+                  </button>
+                ) : (
+                  <p className="text-sm text-ink-900 dark:text-ink-100">—</p>
+                )}
+              </div>
+            </div>
+
+            {/* Skills */}
             {active.skills?.length > 0 && (
-              <div className="mt-4">
-                <p className="text-xs muted uppercase tracking-wider font-semibold">Skills</p>
+              <div className="mt-5">
+                <p className="text-xs muted uppercase tracking-wider font-semibold">
+                  Skills
+                </p>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {active.skills.map((s) => (
-                    <Tag key={s} tone="ink">{s}</Tag>
+                    <Tag key={s} tone="ink">
+                      {s}
+                    </Tag>
                   ))}
                 </div>
               </div>
             )}
 
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs muted">Email</p>
-                <a className="text-brand-600 hover:underline" href={`mailto:${active.email}`}>
-                  {active.email}
-                </a>
+            {/* Teammates */}
+            {teammates.length > 0 && (
+              <div className="mt-5">
+                <p className="text-xs muted uppercase tracking-wider font-semibold">
+                  Teammates in {activeDept?.name}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {teammates.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setActive(t)}
+                      className="flex items-center gap-2 px-2 py-1 rounded-full bg-ink-50 dark:bg-ink-800/50 hover:bg-ink-100 dark:hover:bg-ink-800 transition"
+                      title={`${t.name} · ${t.role}`}
+                    >
+                      <Avatar name={t.name} size="xs" />
+                      <span className="text-xs font-medium text-ink-800 dark:text-ink-200 truncate max-w-[120px]">
+                        {t.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div>
-                <p className="text-xs muted">Joined</p>
-                <p>{active.joinDate}</p>
-              </div>
-            </div>
+            )}
 
+            {/* Recognitions */}
             {empRecognitions.length > 0 && (
               <div className="mt-5">
                 <p className="text-xs muted uppercase tracking-wider font-semibold">
