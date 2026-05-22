@@ -30,53 +30,70 @@ function Modal({ open, onClose, title, children, size = "md" }) {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          // Backdrop. No overflow-y-auto here — the panel handles its own
-          // internal scroll. Letting the backdrop scroll would let the
-          // modal panel scroll out of sight.
-          className="fixed inset-0 z-[100] bg-ink-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
-          onClick={onClose}
-        >
+        <>
+          {/* Backdrop. Separate from the panel so its animation can't
+              interfere with the panel's scroll calculations. Click anywhere
+              on the backdrop closes the modal. */}
           <motion.div
-            initial={{ y: 12, scale: 0.98, opacity: 0 }}
-            animate={{ y: 0, scale: 1, opacity: 1 }}
-            exit={{ y: 12, scale: 0.98, opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            // The panel itself is a flex column with a hard max-height.
-            // The body inside is the only thing allowed to scroll.
-            className={
-              "card w-full bg-white dark:bg-ink-900 flex flex-col rounded-t-2xl sm:rounded-2xl max-h-[100vh] sm:max-h-[calc(100vh-2rem)] overflow-hidden " +
-              (widths[size] || widths.md)
-            }
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header — fixed, never scrolls */}
-            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-ink-100 dark:border-ink-800 shrink-0">
-              <h2 className="font-display font-bold text-base sm:text-lg text-ink-900 dark:text-ink-100 truncate pr-3">
-                {title}
-              </h2>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-500 shrink-0"
-                aria-label="Close"
-              >
-                <X size={18} />
-              </button>
-            </div>
+            onClick={onClose}
+            className="fixed inset-0 z-[100] bg-ink-950/60 backdrop-blur-sm"
+          />
 
-            {/* Body — flex-1 + min-h-0 is the magic combo that lets a
-                flex child shrink below its content size so the
-                overflow-y-auto actually clips and scrolls. Without
-                min-h-0 the child grows to fit its content and overflow
-                has nothing to do. */}
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5">
-              {children}
-            </div>
-          </motion.div>
-        </motion.div>
+          {/* Centering wrapper. pointer-events-none lets clicks fall
+              through to the backdrop unless they hit the panel itself. */}
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-3 sm:p-4 pointer-events-none">
+            <motion.div
+              initial={{ y: 12, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 12, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={(e) => e.stopPropagation()}
+              className={
+                "w-full bg-white dark:bg-ink-900 rounded-2xl shadow-2xl border border-ink-100 dark:border-ink-800 flex flex-col pointer-events-auto " +
+                (widths[size] || widths.md)
+              }
+              // Inline maxHeight guarantees the height cap regardless of
+              // any cascade weirdness — the body's overflow-y-auto needs
+              // this hard ceiling to actually clip and scroll.
+              // 100dvh = dynamic viewport height (handles mobile URL bar).
+              style={{ maxHeight: "calc(100dvh - 1.5rem)" }}
+            >
+              {/* Header — pinned, never scrolls */}
+              <div className="flex items-center justify-between gap-3 p-4 sm:p-5 border-b border-ink-100 dark:border-ink-800 flex-shrink-0">
+                <h2 className="font-display font-bold text-base sm:text-lg text-ink-900 dark:text-ink-100 truncate">
+                  {title}
+                </h2>
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-500 flex-shrink-0"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Body — the scroll container.
+                  flex-1: take remaining vertical space after the header.
+                  inline minHeight: 0: override the default flex-item
+                    min-height: auto so the body can actually shrink to
+                    the parent's available space (the flexbox-with-overflow
+                    gotcha) — using inline style so it can't be purged.
+                  overflow-y-auto: vertical scrollbar when content overflows.
+                  overscroll-contain: scroll inside the modal stays inside
+                    the modal (doesn't bleed to the page). */}
+              <div
+                className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5"
+                style={{ minHeight: 0 }}
+              >
+                {children}
+              </div>
+            </motion.div>
+          </div>
+        </>
       )}
     </AnimatePresence>
   );
