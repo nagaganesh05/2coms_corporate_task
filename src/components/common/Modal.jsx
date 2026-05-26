@@ -5,20 +5,30 @@ import { useEffect, useId, useRef } from "react";
 // Modal whose PANEL stays anchored on the screen — only the BODY inside
 // it scrolls. Single scroll container *inside* the panel:
 //
-//   Layer 1 (outer):  fixed inset-0 + flex items-center           ← centers, no scroll
-//   Layer 2 (panel):  flex flex-col + max-h-full + overflow-hidden ← bounded box
+//   Layer 1 (outer):  fixed inset-0 + h-[100dvh] + flex items-center
+//                     (h-[100dvh] forces the outer to the *visual*
+//                     viewport on iOS Safari, otherwise `inset-0`
+//                     covers the layout viewport which sits behind
+//                     the URL bar — making the panel appear too low.)
+//
+//   Layer 2 (panel):  flex flex-col + max-h-[calc(100dvh-2rem)]
+//                     + overflow-hidden
+//                     (Tailwind classes match the outer padding
+//                     exactly: 2rem total on mobile, 3rem on sm+.)
 //     ├─ header:  shrink-0 (always visible, never moves)
 //     └─ body:    flex-1 min-h-0 overflow-y-auto (scrolls internally)
 //
-// In addition to the layout fix the component handles:
+// Other behaviours:
 //   • Focus trap (Tab / Shift+Tab cycle inside the panel)
-//   • Focus restoration (focus returns to the trigger when the modal closes)
+//   • Default focus = the close button, NOT the first input —
+//     keeps the on-screen keyboard down on mobile so the user
+//     can see the whole form before deciding to type.
+//   • Focus restoration to the trigger on close
 //   • aria-labelledby wired to the title <h2>
-//   • Mouse-down + mouse-up backdrop guard so dragging text out of the
-//     panel never accidentally closes the modal
+//   • Mouse-down + mouse-up backdrop guard so dragging text out of
+//     the panel never accidentally closes the modal
 //   • Scrollbar-gutter compensation so the page underneath doesn't
 //     jump right when scroll-lock kicks in
-//   • 100dvh max-height (dynamic viewport) for iOS Safari URL-bar safety
 
 const FOCUSABLE = [
   "a[href]",
@@ -91,20 +101,19 @@ function Modal({ open, onClose, title, children, size = "md" }) {
     };
   }, [open]);
 
-  // Focus management: remember the trigger, focus the panel on open,
-  // restore focus to the trigger on close.
+  // Focus management: remember the trigger, focus the CLOSE BUTTON
+  // on open (not the first input — that triggers the on-screen
+  // keyboard on mobile and pushes the bottom of a long form below
+  // the visible area). Restore focus to the trigger on close.
   useEffect(() => {
     if (!open) return undefined;
     previouslyFocused.current = document.activeElement;
-    // Defer one frame so the panel is mounted before we focus it.
+    // Defer one frame so the panel is mounted before we focus.
     const id = window.requestAnimationFrame(() => {
-      const items = getFocusable(panelRef.current);
-      // Prefer the first interactive thing INSIDE the body — falling
-      // back to the close button — falling back to the panel itself.
-      const target =
-        items.find(
-          (el) => el !== panelRef.current?.querySelector('[data-modal-close="true"]'),
-        ) || items[0] || panelRef.current;
+      const closeBtn = panelRef.current?.querySelector(
+        '[data-modal-close="true"]',
+      );
+      const target = closeBtn || panelRef.current;
       target?.focus?.({ preventScroll: true });
     });
     return () => {
@@ -141,7 +150,7 @@ function Modal({ open, onClose, title, children, size = "md" }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-[100] bg-ink-950/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overscroll-contain"
+          className="fixed inset-0 z-[100] h-[100dvh] bg-ink-950/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overscroll-contain"
           onMouseDown={handleBackdropMouseDown}
           onMouseUp={handleBackdropMouseUp}
           aria-modal="true"
@@ -160,11 +169,12 @@ function Modal({ open, onClose, title, children, size = "md" }) {
             onMouseDown={(e) => e.stopPropagation()}
             onMouseUp={(e) => e.stopPropagation()}
             tabIndex={-1}
-            // 100dvh keeps the panel within the visible viewport on iOS
-            // Safari even when the URL bar collapses.
-            style={{ maxHeight: "calc(100dvh - 2rem)" }}
+            // Tailwind classes (not inline style) so they're easy to
+            // override per-breakpoint, and so they fall back to vh if
+            // a browser doesn't understand dvh.
             className={
               "relative w-full flex flex-col overflow-hidden bg-white dark:bg-ink-900 rounded-2xl shadow-2xl border border-ink-100 dark:border-ink-800 outline-none " +
+              "max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)] " +
               (widths[size] || widths.md)
             }
           >
