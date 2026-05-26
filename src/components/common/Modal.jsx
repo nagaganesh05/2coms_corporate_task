@@ -10,11 +10,19 @@ import { useEffect, useId, useRef } from "react";
 //
 //   placement="right" — slide-over / drawer from the right edge.
 //     Backdrop:  fixed inset-0 (sibling to panel)
-//     Panel:     fixed inset-y-0 right-0 + flex flex-col
-//                Full viewport height — header + scrollable body + footer.
-//                Best for forms with a primary action button: the footer
-//                is physically anchored at the bottom of the viewport
-//                and cannot scroll out of view at any zoom or window size.
+//     Panel:     fixed top-0 right-0 + h-screen max-h-[100dvh]
+//                + flex flex-col
+//                Full *visual* viewport height — header + scrollable body
+//                + footer. Best for forms with a primary action button:
+//                the footer is physically anchored to the bottom of the
+//                visible area and cannot scroll out of view.
+//
+//                A visualViewport listener also resizes the drawer when
+//                the on-screen keyboard opens (iOS Safari doesn't shrink
+//                100dvh for the keyboard the way Android does).
+//
+//                The footer respects iOS safe-area-inset-bottom so its
+//                buttons sit above the iPhone home-indicator gesture bar.
 //
 // Common behaviour for both placements:
 //   • Optional `footer` slot rendered OUTSIDE the scrollable body
@@ -141,6 +149,28 @@ function Modal({
     };
   }, [open]);
 
+  // Right-drawer ONLY: track visualViewport.height and apply it as the
+  // panel's height. Handles iOS Safari's on-screen keyboard (which
+  // doesn't shrink 100dvh) and any other browser chrome that overlays
+  // the visible area without changing the layout viewport.
+  useEffect(() => {
+    if (!open || placement !== "right") return undefined;
+    const vv = window.visualViewport;
+    if (!vv) return undefined;
+    function update() {
+      if (panelRef.current) {
+        panelRef.current.style.height = `${vv.height}px`;
+      }
+    }
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [open, placement]);
+
   function handleBackdropMouseDown(e) {
     mouseDownOnBackdrop.current = e.target === e.currentTarget;
   }
@@ -188,7 +218,9 @@ function Modal({
     <div
       className={
         "shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 p-4 sm:p-5 border-t border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 " +
-        (isRight ? "" : "rounded-b-2xl")
+        (isRight
+          ? "pb-[max(env(safe-area-inset-bottom),1rem)] sm:pb-[max(env(safe-area-inset-bottom),1.25rem)]"
+          : "rounded-b-2xl")
       }
     >
       {footer}
@@ -226,8 +258,14 @@ function Modal({
               role="dialog"
               aria-modal="true"
               aria-labelledby={titleId}
+              // h-screen is the 100vh fallback; max-h-[100dvh] clamps to
+              // the dynamic viewport on supporting browsers (URL-bar
+              // aware). The visualViewport effect above will overwrite
+              // the height inline whenever the keyboard opens or the
+              // visible area otherwise changes — that handles the
+              // remaining iOS Safari edge case.
               className={
-                "fixed inset-y-0 right-0 z-[101] flex flex-col w-full bg-white dark:bg-ink-900 shadow-2xl border-l border-ink-100 dark:border-ink-800 outline-none " +
+                "fixed top-0 right-0 z-[101] h-screen max-h-[100dvh] flex flex-col w-full bg-white dark:bg-ink-900 shadow-2xl border-l border-ink-100 dark:border-ink-800 outline-none " +
                 (RIGHT_WIDTHS[size] || RIGHT_WIDTHS.md)
               }
             >
