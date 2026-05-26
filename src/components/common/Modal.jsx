@@ -46,7 +46,7 @@ function getFocusable(root) {
   );
 }
 
-function Modal({ open, onClose, title, children, size = "md" }) {
+function Modal({ open, onClose, title, children, size = "md", footer }) {
   const titleId = useId();
   const panelRef = useRef(null);
   const previouslyFocused = useRef(null);
@@ -198,6 +198,15 @@ function Modal({ open, onClose, title, children, size = "md" }) {
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5">
               {children}
             </div>
+
+            {/* Optional footer slot — rendered OUTSIDE the scrollable body
+                so action buttons (Cancel / Submit) are always anchored to
+                the bottom of the panel and cannot scroll out of view. */}
+            {footer && (
+              <div className="shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 p-4 sm:p-5 border-t border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 rounded-b-2xl">
+                {footer}
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}

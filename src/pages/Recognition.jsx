@@ -81,8 +81,35 @@ function GiveRecognitionModal({ open, onClose }) {
   }
 
   return (
-    <Modal open={open} onClose={reset} title="Send a recognition" size="md">
-      <form onSubmit={submit} className="space-y-5">
+    <Modal
+      open={open}
+      onClose={reset}
+      title="Send a recognition"
+      size="md"
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={reset}
+            className="btn-ghost text-sm w-full sm:w-auto"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="recog-form"
+            disabled={!canSubmit}
+            className="btn-primary text-sm w-full sm:w-auto"
+          >
+            <Send size={14} />
+            {selectedBadge
+              ? `Send ${selectedBadge.name} (+${selectedBadge.points})`
+              : "Send recognition"}
+          </button>
+        </>
+      }
+    >
+      <form id="recog-form" onSubmit={submit} className="space-y-5">
         <div>
           <label className="text-sm font-semibold mb-1.5 block">
             Recognize
@@ -208,30 +235,6 @@ function GiveRecognitionModal({ open, onClose }) {
               ? `At least ${MIN_MESSAGE_LEN} characters · ${message.length}/400`
               : `${message.length}/400`}
           </p>
-        </div>
-
-        {/* Footer — sticky to the bottom of the modal body so the
-            Send button is always visible regardless of scroll position.
-            Negative margins extend it to the body's edges; the opaque
-            background covers form content scrolled underneath. */}
-        <div className="sticky bottom-0 z-10 -mx-4 sm:-mx-5 -mb-4 sm:-mb-5 px-4 sm:px-5 py-3 bg-white dark:bg-ink-900 border-t border-ink-100 dark:border-ink-800 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-          <button
-            type="button"
-            onClick={reset}
-            className="btn-ghost text-sm w-full sm:w-auto"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className="btn-primary text-sm w-full sm:w-auto"
-          >
-            <Send size={14} />
-            {selectedBadge
-              ? `Send ${selectedBadge.name} (+${selectedBadge.points})`
-              : "Send recognition"}
-          </button>
         </div>
       </form>
     </Modal>
