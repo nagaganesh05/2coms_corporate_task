@@ -117,7 +117,7 @@ function GiveRecognitionModal({ open, onClose }) {
             className="input"
             aria-label="Search colleagues"
           />
-          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto">
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
             {candidates.length === 0 ? (
               <p className="col-span-full text-center text-xs muted py-4">
                 No colleagues match — try a different search.
@@ -210,7 +210,11 @@ function GiveRecognitionModal({ open, onClose }) {
           </p>
         </div>
 
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2 border-t border-ink-100 dark:border-ink-800">
+        {/* Footer — sticky to the bottom of the modal body so the
+            Send button is always visible regardless of scroll position.
+            Negative margins extend it to the body's edges; the opaque
+            background covers form content scrolled underneath. */}
+        <div className="sticky bottom-0 z-10 -mx-4 sm:-mx-5 -mb-4 sm:-mb-5 px-4 sm:px-5 py-3 bg-white dark:bg-ink-900 border-t border-ink-100 dark:border-ink-800 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
           <button
             type="button"
             onClick={reset}
