@@ -18,30 +18,26 @@ import Tag from "../components/common/Tag";
 import Modal from "../components/common/Modal";
 
 // Format an ISO date as "12 Mar 2014"
-function formatDate(iso) {
+function formatJoinDate(iso) {
   if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return iso;
-  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 // Format a DOB as "4 Aug" (year omitted for privacy)
 function formatBirthday(iso) {
   if (!iso) return null;
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      day: "numeric",
-      month: "short",
-    });
-  } catch {
-    return null;
-  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+  });
 }
 
 function Directory() {
@@ -55,63 +51,120 @@ function Directory() {
   const [dept, setDept] = useState("all");
   const [vertical, setVertical] = useState("all");
   const [location, setLocation] = useState("all");
-  const [active, setActive] = useState(null);
+  // Track the active employee by ID so the modal always reflects the
+  // current store state — not a stale snapshot captured at click time.
+  const [activeId, setActiveId] = useState(null);
 
-  const locations = useMemo(
-    () => Array.from(new Set(employees.map((e) => e.location))).sort(),
-    [employees],
-  );
+  // Cascading filters: each dropdown's options narrow based on the
+  // other selections so users can never pick an empty intersection.
+  const departmentsForVertical = useMemo(() => {
+    if (vertical === "all") return departments;
+    return departments.filter((d) => d.verticalId === vertical);
+  }, [departments, vertical]);
 
-  const filtered = useMemo(() => {
+  const employeesAfterStructural = useMemo(() => {
     return employees.filter((e) => {
       if (dept !== "all" && e.departmentId !== dept) return false;
       if (vertical !== "all") {
         const d = departments.find((x) => x.id === e.departmentId);
         if (d?.verticalId !== vertical) return false;
       }
-      if (location !== "all" && e.location !== location) return false;
-      if (q) {
-        const haystack = [
-          e.name,
-          e.role,
-          e.email,
-          e.location,
-          ...(e.skills || []),
-        ]
-          .join(" ")
-          .toLowerCase();
-        if (!haystack.includes(q.toLowerCase())) return false;
-      }
       return true;
     });
-  }, [employees, departments, q, dept, vertical, location]);
+  }, [employees, departments, dept, vertical]);
 
-  const empRecognitions = active
-    ? recognitions
-        .filter((r) => r.toId === active.id)
-        .map((r) => ({
-          ...r,
-          badge: badges.find((b) => b.id === r.badgeId),
-        }))
-    : [];
+  const locations = useMemo(
+    () =>
+      Array.from(
+        new Set(employeesAfterStructural.map((e) => e.location).filter(Boolean)),
+      ).sort(),
+    [employeesAfterStructural],
+  );
 
-  const activeDept = active
-    ? departments.find((d) => d.id === active.departmentId)
-    : null;
-  const activeVertical = activeDept
-    ? verticals.find((v) => v.id === activeDept.verticalId)
-    : null;
-  const manager = active?.manager
-    ? employees.find((e) => e.id === active.manager)
-    : null;
-  const teammates = active
-    ? employees
-        .filter(
-          (e) => e.departmentId === active.departmentId && e.id !== active.id,
-        )
-        .slice(0, 8)
-    : [];
-  const birthday = active ? formatBirthday(active.dob) : null;
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return employeesAfterStructural.filter((e) => {
+      if (location !== "all" && e.location !== location) return false;
+      if (!needle) return true;
+      const haystack = [e.name, e.role, e.email, e.location, ...(e.skills || [])]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [employeesAfterStructural, q, location]);
+
+  const hasFilters =
+    !!q || dept !== "all" || vertical !== "all" || location !== "all";
+
+  function clearFilters() {
+    setQ("");
+    setDept("all");
+    setVertical("all");
+    setLocation("all");
+  }
+
+  // Always derive `active` from the current employees list so edits
+  // elsewhere flow into the open modal automatically.
+  const active = useMemo(
+    () => (activeId ? employees.find((e) => e.id === activeId) || null : null),
+    [activeId, employees],
+  );
+
+  // Memoise everything the modal renders so search keystrokes do not
+  // recompute manager / teammates / recognitions on every render.
+  const activeDept = useMemo(
+    () => (active ? departments.find((d) => d.id === active.departmentId) : null),
+    [active, departments],
+  );
+  const activeVertical = useMemo(
+    () =>
+      activeDept ? verticals.find((v) => v.id === activeDept.verticalId) : null,
+    [activeDept, verticals],
+  );
+  const manager = useMemo(
+    () =>
+      active?.manager ? employees.find((e) => e.id === active.manager) : null,
+    [active, employees],
+  );
+  const teammates = useMemo(() => {
+    if (!active) return [];
+    return employees
+      .filter((e) => e.departmentId === active.departmentId && e.id !== active.id)
+      .slice(0, 8);
+  }, [active, employees]);
+  const empRecognitions = useMemo(() => {
+    if (!active) return [];
+    return recognitions
+      .filter((r) => r.toId === active.id)
+      .slice() // don't mutate store
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .map((r) => ({ ...r, badge: badges.find((b) => b.id === r.badgeId) }));
+  }, [active, recognitions, badges]);
+  const birthday = useMemo(
+    () => (active ? formatBirthday(active.dob) : null),
+    [active],
+  );
+
+  // Dropdown handlers — selecting a vertical clears any incompatible
+  // department; selecting a department auto-sets its vertical.
+  function onChangeVertical(v) {
+    setVertical(v);
+    if (v !== "all") {
+      const stillValid = departments.find(
+        (d) => d.id === dept && d.verticalId === v,
+      );
+      if (!stillValid) setDept("all");
+    }
+  }
+  function onChangeDept(d) {
+    setDept(d);
+    if (d !== "all") {
+      const found = departments.find((x) => x.id === d);
+      if (found && vertical !== "all" && found.verticalId !== vertical) {
+        setVertical(found.verticalId);
+      }
+    }
+  }
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -124,6 +177,15 @@ function Directory() {
             {filtered.length} of {employees.length} colleagues
           </p>
         </div>
+        {hasFilters && (
+          <button
+            onClick={clearFilters}
+            className="btn-outline text-sm"
+            aria-label="Clear all filters"
+          >
+            <X size={14} /> Clear filters
+          </button>
+        )}
       </div>
 
       {/* Filter bar */}
@@ -137,32 +199,41 @@ function Directory() {
         </div>
         <select
           value={vertical}
-          onChange={(e) => setVertical(e.target.value)}
+          onChange={(e) => onChangeVertical(e.target.value)}
           className="input md:col-span-2"
+          aria-label="Filter by vertical"
         >
           <option value="all">All verticals</option>
           {verticals.map((v) => (
-            <option key={v.id} value={v.id}>{v.name}</option>
+            <option key={v.id} value={v.id}>
+              {v.name}
+            </option>
           ))}
         </select>
         <select
           value={dept}
-          onChange={(e) => setDept(e.target.value)}
+          onChange={(e) => onChangeDept(e.target.value)}
           className="input md:col-span-3"
+          aria-label="Filter by department"
         >
           <option value="all">All departments</option>
-          {departments.map((d) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
+          {departmentsForVertical.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
           ))}
         </select>
         <select
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           className="input md:col-span-2"
+          aria-label="Filter by location"
         >
           <option value="all">All locations</option>
           {locations.map((l) => (
-            <option key={l} value={l}>{l}</option>
+            <option key={l} value={l}>
+              {l}
+            </option>
           ))}
         </select>
       </div>
@@ -173,15 +244,7 @@ function Directory() {
           title="No colleagues match your filters"
           hint="Try clearing a filter or searching for a different skill."
           action={
-            <button
-              onClick={() => {
-                setQ("");
-                setDept("all");
-                setVertical("all");
-                setLocation("all");
-              }}
-              className="btn-outline text-sm"
-            >
+            <button onClick={clearFilters} className="btn-outline text-sm">
               <X size={14} /> Clear filters
             </button>
           }
@@ -189,17 +252,21 @@ function Directory() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((e) => (
-            <EmployeeCard key={e.id} employee={e} onView={setActive} />
+            <EmployeeCard
+              key={e.id}
+              employee={e}
+              onView={() => setActiveId(e.id)}
+            />
           ))}
         </div>
       )}
 
-      {/* Profile preview modal */}
+      {/* Profile preview modal — title is the employee's name */}
       <Modal
         open={!!active}
-        onClose={() => setActive(null)}
+        onClose={() => setActiveId(null)}
         size="md"
-        title="Employee profile"
+        title={active?.name || "Employee profile"}
       >
         {active && (
           <div>
@@ -207,9 +274,9 @@ function Directory() {
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <Avatar name={active.name} size="xl" framed />
               <div className="min-w-0 flex-1">
-                <h2 className="font-display text-xl font-bold text-ink-900 dark:text-ink-100 break-words">
+                <p className="font-display text-lg font-bold text-ink-900 dark:text-ink-100 break-words">
                   {active.name}
-                </h2>
+                </p>
                 <p className="muted text-sm">{active.role}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {activeVertical && (
@@ -260,7 +327,7 @@ function Directory() {
                   <Calendar size={11} /> Joined
                 </p>
                 <p className="text-sm text-ink-900 dark:text-ink-100">
-                  {formatDate(active.joinDate)}
+                  {formatJoinDate(active.joinDate)}
                 </p>
               </div>
               {birthday && (
@@ -279,7 +346,7 @@ function Directory() {
                 </p>
                 {manager ? (
                   <button
-                    onClick={() => setActive(manager)}
+                    onClick={() => setActiveId(manager.id)}
                     className="mt-1 flex items-center gap-2 group min-w-0 w-full text-left"
                   >
                     <Avatar name={manager.name} size="sm" />
@@ -324,7 +391,7 @@ function Directory() {
                   {teammates.map((t) => (
                     <button
                       key={t.id}
-                      onClick={() => setActive(t)}
+                      onClick={() => setActiveId(t.id)}
                       className="flex items-center gap-2 px-2 py-1 rounded-full bg-ink-50 dark:bg-ink-800/50 hover:bg-ink-100 dark:hover:bg-ink-800 transition min-w-0"
                       title={`${t.name} · ${t.role}`}
                     >
@@ -338,7 +405,7 @@ function Directory() {
               </div>
             )}
 
-            {/* Recognitions */}
+            {/* Recognitions — newest first, with explicit "+N more" */}
             {empRecognitions.length > 0 && (
               <div className="mt-5">
                 <p className="text-xs muted uppercase tracking-wider font-semibold">
@@ -360,6 +427,11 @@ function Directory() {
                     </li>
                   ))}
                 </ul>
+                {empRecognitions.length > 5 && (
+                  <p className="mt-2 text-xs muted text-center">
+                    +{empRecognitions.length - 5} more
+                  </p>
+                )}
               </div>
             )}
           </div>
