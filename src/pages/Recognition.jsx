@@ -86,6 +86,7 @@ function GiveRecognitionModal({ open, onClose }) {
       onClose={reset}
       title="Send a recognition"
       size="md"
+      placement="right"
       footer={
         <>
           <button
