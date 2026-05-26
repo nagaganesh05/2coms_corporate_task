@@ -1,45 +1,285 @@
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 
-// Modal that always lets you read every line of content, no matter how
-// tall the content or how small the screen.
+// Modal supports two placements:
 //
-// Strategy: instead of trying to scroll *inside* the modal panel
-// (the flex + min-h-0 + overflow-y-auto pattern, which is fragile and
-// often gets shadowed by parent constraints), we make the entire
-// modal-and-backdrop layer scrollable. The panel just sits inside a
-// vertically-scrollable fixed wrapper. When content is short the panel
-// is centered; when it's tall, the user scrolls naturally and the whole
-// panel moves up/down. This is the same pattern Tailwind UI, Stripe,
-// and Linear use.
+//   placement="center" (default) — classic centered popup.
+//     Outer:  fixed inset-0 + h-[100dvh] + flex items-center
+//     Panel:  flex flex-col + max-h-[calc(100dvh-2rem)] + overflow-hidden
+//
+//   placement="right" — slide-over / drawer from the right edge.
+//     Backdrop:  fixed inset-0 (sibling to panel)
+//     Panel:     fixed top-0 right-0 + h-screen max-h-[100dvh]
+//                + flex flex-col
+//                Full *visual* viewport height — header + scrollable body
+//                + footer. Best for forms with a primary action button:
+//                the footer is physically anchored to the bottom of the
+//                visible area and cannot scroll out of view.
+//
+//                A visualViewport listener also resizes the drawer when
+//                the on-screen keyboard opens (iOS Safari doesn't shrink
+//                100dvh for the keyboard the way Android does).
+//
+//                The footer respects iOS safe-area-inset-bottom so its
+//                buttons sit above the iPhone home-indicator gesture bar.
+//
+// Common behaviour for both placements:
+//   • Optional `footer` slot rendered OUTSIDE the scrollable body
+//   • Focus trap (Tab / Shift+Tab cycle inside the panel)
+//   • Default focus = the close button (avoids mobile-keyboard popup)
+//   • Focus restoration to the trigger on close
+//   • aria-labelledby wired to the title <h2>
+//   • Mouse-down + mouse-up backdrop guard (drag-to-select doesn't close)
+//   • Body scroll-lock with scrollbar-gutter compensation
 
-function Modal({ open, onClose, title, children, size = "md" }) {
+const FOCUSABLE = [
+  "a[href]",
+  "button:not([disabled])",
+  'input:not([disabled]):not([type="hidden"])',
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
+
+function getFocusable(root) {
+  if (!root) return [];
+  return Array.from(root.querySelectorAll(FOCUSABLE)).filter(
+    (el) => !el.hasAttribute("aria-hidden") && el.offsetParent !== null,
+  );
+}
+
+const CENTER_WIDTHS = {
+  sm: "max-w-md",
+  md: "max-w-xl",
+  lg: "max-w-3xl",
+};
+
+const RIGHT_WIDTHS = {
+  sm: "max-w-sm",
+  md: "max-w-lg",
+  lg: "max-w-2xl",
+};
+
+function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  size = "md",
+  footer,
+  placement = "center",
+}) {
+  const titleId = useId();
+  const panelRef = useRef(null);
+  const previouslyFocused = useRef(null);
+  // Tracks whether the most recent mousedown happened on the backdrop.
+  // Without this guard, dragging a text selection out of the panel and
+  // releasing on the backdrop closes the modal — surprising behaviour.
+  const mouseDownOnBackdrop = useRef(false);
+
+  // Keyboard: Escape closes, Tab traps focus inside the panel.
   useEffect(() => {
+    if (!open) return undefined;
     function onKey(e) {
-      if (e.key === "Escape") onClose?.();
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose?.();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const items = getFocusable(panelRef.current);
+      if (items.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (
+        e.shiftKey &&
+        (active === first || !panelRef.current?.contains(active))
+      ) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     }
-    if (open) document.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  // Lock body scroll while the modal is open so the page underneath
-  // doesn't scroll along with the modal.
+  // Body scroll-lock (with scrollbar-gutter compensation to prevent
+  // the layout-shift "jump" when the scrollbar disappears).
   useEffect(() => {
     if (!open) return undefined;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const { body } = document;
+    const prevOverflow = body.style.overflow;
+    const prevPaddingRight = body.style.paddingRight;
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
+    body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
     return () => {
-      document.body.style.overflow = prev;
+      body.style.overflow = prevOverflow;
+      body.style.paddingRight = prevPaddingRight;
     };
   }, [open]);
 
-  const widths = {
-    sm: "max-w-md",
-    md: "max-w-xl",
-    lg: "max-w-3xl",
-  };
+  // Focus management: remember the trigger, focus the close button
+  // on open, restore focus to the trigger on close.
+  useEffect(() => {
+    if (!open) return undefined;
+    previouslyFocused.current = document.activeElement;
+    const id = window.requestAnimationFrame(() => {
+      const closeBtn = panelRef.current?.querySelector(
+        '[data-modal-close="true"]',
+      );
+      const target = closeBtn || panelRef.current;
+      target?.focus?.({ preventScroll: true });
+    });
+    return () => {
+      window.cancelAnimationFrame(id);
+      const trigger = previouslyFocused.current;
+      if (trigger && typeof trigger.focus === "function") {
+        setTimeout(() => trigger.focus({ preventScroll: true }), 0);
+      }
+    };
+  }, [open]);
 
+  // Right-drawer ONLY: track visualViewport.height and apply it as the
+  // panel's height. Handles iOS Safari's on-screen keyboard (which
+  // doesn't shrink 100dvh) and any other browser chrome that overlays
+  // the visible area without changing the layout viewport.
+  useEffect(() => {
+    if (!open || placement !== "right") return undefined;
+    const vv = window.visualViewport;
+    if (!vv) return undefined;
+    function update() {
+      if (panelRef.current) {
+        panelRef.current.style.height = `${vv.height}px`;
+      }
+    }
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [open, placement]);
+
+  function handleBackdropMouseDown(e) {
+    mouseDownOnBackdrop.current = e.target === e.currentTarget;
+  }
+  function handleBackdropMouseUp(e) {
+    if (mouseDownOnBackdrop.current && e.target === e.currentTarget) {
+      onClose?.();
+    }
+    mouseDownOnBackdrop.current = false;
+  }
+
+  const isRight = placement === "right";
+
+  // Reusable panel contents (header / body / optional footer).
+  const headerEl = (
+    <div
+      className={
+        "shrink-0 flex items-center justify-between gap-3 p-4 sm:p-5 border-b border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 " +
+        (isRight ? "" : "rounded-t-2xl")
+      }
+    >
+      <h2
+        id={titleId}
+        className="font-display font-bold text-base sm:text-lg text-ink-900 dark:text-ink-100 truncate"
+      >
+        {title}
+      </h2>
+      <button
+        onClick={onClose}
+        data-modal-close="true"
+        className="p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-500 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-brand-500"
+        aria-label="Close"
+      >
+        <X size={18} />
+      </button>
+    </div>
+  );
+
+  const bodyEl = (
+    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5">
+      {children}
+    </div>
+  );
+
+  const footerEl = footer ? (
+    <div
+      className={
+        "shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 p-4 sm:p-5 border-t border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 " +
+        (isRight
+          ? "pb-[max(env(safe-area-inset-bottom),1rem)] sm:pb-[max(env(safe-area-inset-bottom),1.25rem)]"
+          : "rounded-b-2xl")
+      }
+    >
+      {footer}
+    </div>
+  ) : null;
+
+  // ─── Right-side drawer ───────────────────────────────────────────────
+  if (isRight) {
+    return (
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Backdrop is a sibling of the drawer panel, not a parent.
+                That makes it trivial to anchor the panel to the right
+                edge with `fixed right-0` and slide it in. */}
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="fixed inset-0 z-[100] bg-ink-950/60 backdrop-blur-sm"
+              onMouseDown={handleBackdropMouseDown}
+              onMouseUp={handleBackdropMouseUp}
+              aria-hidden="true"
+            />
+            <motion.div
+              key="panel"
+              ref={panelRef}
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              tabIndex={-1}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+              // h-screen is the 100vh fallback; max-h-[100dvh] clamps to
+              // the dynamic viewport on supporting browsers (URL-bar
+              // aware). The visualViewport effect above will overwrite
+              // the height inline whenever the keyboard opens or the
+              // visible area otherwise changes — that handles the
+              // remaining iOS Safari edge case.
+              className={
+                "fixed top-0 right-0 z-[101] h-screen max-h-[100dvh] flex flex-col w-full bg-white dark:bg-ink-900 shadow-2xl border-l border-ink-100 dark:border-ink-800 outline-none " +
+                (RIGHT_WIDTHS[size] || RIGHT_WIDTHS.md)
+              }
+            >
+              {headerEl}
+              {bodyEl}
+              {footerEl}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    );
+  }
+
+  // ─── Centered popup (default) ────────────────────────────────────────
   return (
     <AnimatePresence>
       {open && (
@@ -48,44 +288,32 @@ function Modal({ open, onClose, title, children, size = "md" }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          // The backdrop IS the scroll container.
-          // - fixed inset-0 → covers the viewport
-          // - overflow-y-auto → vertical scroll when content is tall
-          // - overscroll-contain → scroll stays inside this container
-          // - p-3 sm:p-6 → breathing room around the panel
-          // - flex items-start sm:items-center justify-center →
-          //     panel is centered when short, top-anchored when tall
-          //     (so a tall panel doesn't get hidden above the fold)
-          className="fixed inset-0 z-[100] bg-ink-950/60 backdrop-blur-sm overflow-y-auto overscroll-contain flex items-start sm:items-center justify-center p-3 sm:p-6"
-          onClick={onClose}
+          className="fixed inset-0 z-[100] h-[100dvh] bg-ink-950/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overscroll-contain"
+          onMouseDown={handleBackdropMouseDown}
+          onMouseUp={handleBackdropMouseUp}
+          aria-modal="true"
+          role="dialog"
+          aria-labelledby={titleId}
         >
           <motion.div
+            ref={panelRef}
             initial={{ y: 20, opacity: 0, scale: 0.98 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 20, opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
+            tabIndex={-1}
             className={
-              "relative w-full bg-white dark:bg-ink-900 rounded-2xl shadow-2xl border border-ink-100 dark:border-ink-800 my-auto " +
-              (widths[size] || widths.md)
+              "relative w-full flex flex-col overflow-hidden bg-white dark:bg-ink-900 rounded-2xl shadow-2xl border border-ink-100 dark:border-ink-800 outline-none " +
+              "max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)] " +
+              (CENTER_WIDTHS[size] || CENTER_WIDTHS.md)
             }
           >
-            {/* Header — sticky so it stays visible while the modal scrolls */}
-            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 p-4 sm:p-5 border-b border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 rounded-t-2xl">
-              <h2 className="font-display font-bold text-base sm:text-lg text-ink-900 dark:text-ink-100 truncate">
-                {title}
-              </h2>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-500 flex-shrink-0"
-                aria-label="Close"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Body — natural height, the outer wrapper handles scroll */}
-            <div className="p-4 sm:p-5">{children}</div>
+            {headerEl}
+            {bodyEl}
+            {footerEl}
           </motion.div>
         </motion.div>
       )}
